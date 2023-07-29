@@ -107,8 +107,7 @@ int main(){
   // The lack of include_bytes!() means that we have to dynamically load the file at runtime.
   // Good for memory footprint of the binary itself, bad for speed and safety. Completely irrelevant
   // to real life as there the packets would be sent over some connection.
-  FILE* fileptr;
-  fopen_s(&fileptr, "../transmission.bin", "rb");
+  FILE* fileptr = fopen("../transmission.bin", "rb");
   if (!fileptr){
     printf("Could not find transmissions.bin\n");
   }
