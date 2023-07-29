@@ -144,7 +144,7 @@ impl From<Control> for ControlByte {
 
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub enum YahdlcError {
     #[error("The frame check sequence did not match that in the packet")]
     FrameCheckSequenceInvalid,
 
@@ -155,7 +155,7 @@ pub enum Error {
     TooShort,
 }
 
-pub fn decode(data: &[u8], output: &mut Vec<u8>) -> Result<Control, Error>{
+pub fn decode(data: &[u8], output: &mut Vec<u8>) -> Result<Control, YahdlcError>{
     let mut state = State::default();
     let mut data_iter = data.iter().peekable();
     let mut value;
@@ -208,14 +208,14 @@ pub fn decode(data: &[u8], output: &mut Vec<u8>) -> Result<Control, Error>{
 
     if let (Some(start), Some(end)) = (state.start_index, state.end_index){
         if end < start + 4{
-            return Err(Error::TooShort)
+            return Err(YahdlcError::TooShort)
         }
     } else {
-        return Err(Error::NoMessage)
+        return Err(YahdlcError::NoMessage)
     }
 
     if state.fcs != FrameCheckSequence::GOOD_VALUE{
-        return Err(Error::FrameCheckSequenceInvalid)
+        return Err(YahdlcError::FrameCheckSequenceInvalid)
     }
     
 

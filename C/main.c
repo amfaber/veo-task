@@ -34,7 +34,10 @@
 // again result in their removal.
 
 
-// A helper struct to more easily get at the actual moves in between the acknowledgement frames
+// An iterator inspired by the design from Rust. It recognizes sequences in data surrounded by
+// YAHDLC_FLAG_SEQUENCE, and then feeds that sequence to the decoder. If the result is a data
+// frame, the move is written to "output" and 1 is returned to indicate the iterator isn't
+// empty yet. Once the iterator is empty, 0 is returned.
 typedef struct{
   int start;
   int end;
@@ -44,8 +47,7 @@ typedef struct{
   unsigned int output_len;
 } move_iterator_t;
 
-// This is pretty much a one-to-one copy of the original Rust implementation that inspired it
-// Returning 1 means there is more in the iterator while returning 0 means it is done.
+// move_iterator_t.next()
 int next_move(move_iterator_t* iter, yahdlc_control_t* control){
   while (iter->end < iter->data_len){
     
@@ -57,6 +59,10 @@ int next_move(move_iterator_t* iter, yahdlc_control_t* control){
         iter->output,
         &(iter->output_len)
       );
+      if (ret < 0){
+        printf("yahdlc error %i", ret);
+        exit(1);
+      }
       iter->start = iter->end + 1;
       iter->end += 2;
       if (control->frame != 0){
@@ -105,8 +111,9 @@ void update_player(player_position_t* player, char move){
 
 int main(){
   // The lack of include_bytes!() means that we have to dynamically load the file at runtime.
-  // Good for memory footprint of the binary itself, bad for speed and safety. Completely irrelevant
-  // to real life as there the packets would be sent over some connection.
+  // Good for memory footprint of the binary itself, bad for speed and safety.
+  // Completely irrelevant to real life, as there the packets would be sent over some
+  // connection.
   FILE* fileptr = fopen("../transmission.bin", "rb");
   if (!fileptr){
     printf("Could not find transmissions.bin\n");
@@ -132,8 +139,6 @@ int main(){
   };
   yahdlc_control_t control;
 
-  int run;
-
   int prev_idx = 0;
 
   // Start the player at (0, 4) according to the task.
@@ -144,6 +149,8 @@ int main(){
   
   // -1 is used to represent "no move"
   int prev_moves[] = {-1, -1, -1};
+  
+  int run;
   
   while (1){
     // Keep pulling moves until the iterator tells us there are no more
