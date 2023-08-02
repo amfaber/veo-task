@@ -71,23 +71,16 @@ struct MoveIterator<'a> {
 
 impl<'a> MoveIterator<'a> {
     fn new(data: &'a [u8]) -> Result<Self, MoveIteratorError> {
-        let out = Self {
+        // Special case for empty slices - the iterator is valid by immediately returns None.
+        match data{
+            [] | [FLAG_SEQUENCE, .., FLAG_SEQUENCE] => Ok(Self {
             start: 0,
             end: 1,
             data,
             buffer: Vec::new(),
-        };
-        // Special case for empty slices - the iterator is valid by immediately returns None.
-        if data.len() == 0 {
-            return Ok(out);
+        }),
+            _ => Err(MoveIteratorError::NotSurroundedBySequenceFlags)
         }
-        if data[0] != FLAG_SEQUENCE {
-            return Err(MoveIteratorError::NoStartFlag);
-        }
-        if data[data.len() - 1] != FLAG_SEQUENCE {
-            return Err(MoveIteratorError::NoEndFlag);
-        }
-        Ok(out)
     }
 }
 
@@ -128,10 +121,8 @@ impl<'a> Iterator for MoveIterator<'a> {
 // demonstrate nice features of Rust error handling
 #[derive(Debug, thiserror::Error)]
 enum MoveIteratorError {
-    #[error("The nonempty data doesn't start with a flag sequence")]
-    NoStartFlag,
-    #[error("The nonempty data doesn't end with a flag sequence")]
-    NoEndFlag,
+    #[error("The nonempty data doesn't start and end with a flag sequence")]
+    NotSurroundedBySequenceFlags,
     #[error("Invalid move")]
     InvalidMove,
     #[error("Decoding the frame failed")]
@@ -242,11 +233,11 @@ fn main() {
     run(data, print).unwrap();
     println!("\n\n");
     
-    print_bad_data_err(&[FLAG_SEQUENCE, 1 , 62, 35, 7, 31, FLAG_SEQUENCE]);
+    print_bad_data_err(&[FLAG_SEQUENCE, 1, 62, 35, 7, 31, FLAG_SEQUENCE]);
 
-    print_bad_data_err(&[FLAG_SEQUENCE, 1 , 62, 35, 7, 31]);
+    print_bad_data_err(&[FLAG_SEQUENCE, 1, 62, 35, 7, 31]);
 
-    print_bad_data_err(&[1 , 62, 35, 7, 31]);
+    print_bad_data_err(&[1, 62, 35, 7, 31]);
 
     print_bad_data_err(&[FLAG_SEQUENCE, FLAG_SEQUENCE]);
 }
